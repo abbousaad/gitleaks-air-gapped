@@ -1,6 +1,115 @@
-# gitleaks
+# Custom Gitleaks Image Builder
 
+This repository contains a GitLab CI/CD pipeline that builds a custom Gitleaks image with your own security rules and configurations, then pushes it to your local registry for use in other CI/CD pipelines.
 
+## Features
+
+- 🔨 **Custom Image Building**: Builds gitleaks with your custom security rules
+- 📦 **Local Registry Integration**: Makes custom gitleaks available in your private registry
+- 🏷️ **Version Management**: Maintains versioned tag (v8.28.0)
+- 📢 **Notifications**: Sends notifications when images are updated
+- 🧹 **Cleanup**: Automatically removes local images after pushing
+- 🔒 **Custom Rules**: Easy to add and modify security detection patterns
+
+## Quick Start
+
+### Using the Image in GitLab CI
+
+Once the image is available in your local registry, you can use it in other projects with docker run:
+
+```yaml
+# .gitlab-ci.yml
+gitleaks-scan:
+  stage: security
+  script:
+    - docker run --rm -v $CI_PROJECT_DIR:/app 192.168.0.2:5050/security/gitleaks:v8.28.0 gitleaks detect --source /app --report-format json --report-path /app/gitleaks-report.json
+  artifacts:
+    paths:
+      - gitleaks-report.json
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+```
+
+### Manual Image Build
+
+If you need to manually build the custom image:
+
+```bash
+# Build the custom image
+docker build -t 192.168.0.2:8090/security/gitleaks:v8.28.0 .
+
+# Push to your registry
+docker push 192.168.0.2:8090/security/gitleaks:v8.28.0
+```
+
+## CI/CD Pipeline
+
+The GitLab CI pipeline includes:
+
+1. **Docker Stage**: 
+   - Builds a custom gitleaks image using the Dockerfile
+   - Includes your custom security rules from `.gitleaks.toml`
+   - Pushes the custom image to your local registry
+2. **Notify Stage**: Sends notifications via Nextcloud Talk when build succeeds
+
+### Pipeline Features
+
+- 🔨 **Automated Custom Build**: Builds custom image with your rules on main branch and tags
+- 📢 **Notifications**: Sends detailed notifications via Nextcloud Talk
+- 🏷️ **Version Management**: Maintains latest tag
+- 🧹 **Cleanup**: Automatically removes local images after pushing
+- 🔒 **Custom Rules**: Uses your `.gitleaks.toml` configuration
+
+### Pipeline Variables
+
+Set these variables in your GitLab project settings (see `GITLAB_CI_VARIABLES.md` for details):
+
+#### Registry Authentication
+- `CI_REGISTRY_USER`: Username for your local registry
+- `CI_REGISTRY_PASSWORD`: Password for your local registry
+
+#### Nextcloud Notifications
+- `NEXCLOUD_USERNAME`: Nextcloud username for API authentication
+- `NEXCLOUD_PASSWORD`: Nextcloud password for API authentication
+- `NEXCLOUD_URL`: Base URL of your Nextcloud instance
+- `NEXCLOUD_CONVERSATION_TOKEN`: Token for the specific Nextcloud Talk conversation
+
+## Configuration
+
+### Pipeline Variables
+
+The pipeline uses these variables to build and push images:
+- `GITLEAKS_VERSION`: Version of gitleaks to build (currently v8.28.0)
+- `SOURCE_IMAGE`: Docker Hub base image (zricethezav/gitleaks:v8.28.0)
+- `TARGET_IMAGE`: Local registry target image (v8.28.0 tag)
+
+### Registry Integration
+
+The pipeline automatically:
+- Authenticates with your local registry using `CI_REGISTRY_USER` and `CI_REGISTRY_PASSWORD`
+- Builds a custom gitleaks image using the Dockerfile
+- Includes your custom security rules from `.gitleaks.toml`
+- Pushes the custom image to your local registry
+
+### Custom Configuration
+
+To add more security rules:
+1. Edit the `.gitleaks.toml` file with your custom patterns
+2. Commit and push your changes
+3. The pipeline will automatically build a new custom image with your rules
+4. The new image will be available in your local registry
+
+**Example**: Add a new rule to `.gitleaks.toml`:
+```toml
+[[rules]]
+id = "custom-aws-key"
+description = "AWS Access Key pattern"
+regex = '''AKIA[0-9A-Z]{16}'''
+tags = ["key", "aws"]
+confidence = "high"
+```
 
 ## Getting started
 
@@ -15,14 +124,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://192.168.11.100/security/gitleaks.git
+git remote add origin http://192.168.0.2:8090/security/gitleaks.git
 git branch -M main
 git push -uf origin main
 ```
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](https://192.168.11.100/security/gitleaks/-/settings/integrations)
+- [ ] [Set up project integrations](http://192.168.0.2:8090/security/gitleaks/-/settings/integrations)
 
 ## Collaborate with your team
 

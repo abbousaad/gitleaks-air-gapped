@@ -1,0 +1,220 @@
+# Gitleaks configuration file
+# This file configures what secrets and sensitive data gitleaks should detect
+
+[global]
+# Enable verbose output
+verbose = false
+
+# Enable debug mode
+debug = false
+
+# Set the output format (json, csv, sarif)
+report-format = "json"
+
+# Set the output path
+report-path = "gitleaks-report.json"
+
+# Enable all rules
+enable-git = true
+
+# Set the timeout for operations
+timeout = 300
+
+# Enable scanning of all file types
+all-types = true
+
+# Enable scanning of binary files
+binary = false
+
+# Enable scanning of archives
+archive = false
+
+# Set the maximum file size to scan (in bytes)
+max-target-megabytes = 0
+
+# Enable scanning of untracked files
+untracked = true
+
+# Enable scanning of staged files
+staged = false
+
+# Enable scanning of commits
+commits = true
+
+# Enable scanning of branches
+branches = true
+
+# Enable scanning of tags
+tags = true
+
+# Set the number of workers for parallel processing
+workers = 0
+
+# Enable scanning of submodules
+submodule = false
+
+# Set the path to scan
+path = "."
+
+# Enable scanning of specific file extensions
+[allowlist]
+description = "Allowlist for gitleaks"
+paths = [
+    ".*\\.example$",
+    ".*\\.template$",
+    ".*\\.sample$",
+]
+
+commits = [
+    # Add commit hashes to ignore here
+]
+
+files = [
+    ".*\\.example$",
+    ".*\\.template$",
+    ".*\\.sample$",
+]
+
+# Custom rules for specific patterns
+[[rules]]
+id = "custom-api-key"
+description = "Custom API key pattern"
+regex = '''(?i)(api[_-]?key|apikey|api_key)["\s]*(?::|=>|=)\s*["\']([a-zA-Z0-9]{32,45})["\']'''
+tags = ["key", "api"]
+confidence = "medium"
+
+[[rules]]
+id = "custom-jwt-token"
+description = "JWT token pattern"
+regex = '''eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*'''
+tags = ["jwt", "token"]
+confidence = "high"
+
+[[rules]]
+id = "custom-private-key"
+description = "Private key pattern"
+regex = '''-----BEGIN\s+(?:RSA\s+)?PRIVATE\s+KEY-----'''
+tags = ["key", "private"]
+confidence = "high"
+
+# Database Configuration Patterns
+[[rules]]
+id = "database-host"
+description = "Database host configuration"
+regex = '''(?i)(DB_HOST|database_host|db_host)["\s]*(?::|=>|=)\s*["\']([^"\']+)["\']'''
+tags = ["database", "host", "config"]
+confidence = "medium"
+
+[[rules]]
+id = "database-port"
+description = "Database port configuration"
+regex = '''(?i)(DB_PORT|database_port|db_port)["\s]*(?::|=>|=)\s*["\']?(\d{4,5})["\']?'''
+tags = ["database", "port", "config"]
+confidence = "medium"
+
+[[rules]]
+id = "database-name"
+description = "Database name configuration"
+regex = '''(?i)(DB_NAME|database_name|db_name)["\s]*(?::|=>|=)\s*["\']([^"\']+)["\']'''
+tags = ["database", "name", "config"]
+confidence = "medium"
+
+[[rules]]
+id = "database-user"
+description = "Database user configuration"
+regex = '''(?i)(DB_USER|database_user|db_user)["\s]*(?::|=>|=)\s*["\']([^"\']+)["\']'''
+tags = ["database", "user", "config"]
+confidence = "medium"
+
+[[rules]]
+id = "database-password"
+description = "Database password configuration"
+regex = '''(?i)(DB_PASSWORD|database_password|db_password)["\s]*(?::|=>|=)\s*["\']([^"\']+)["\']'''
+tags = ["database", "password", "secret"]
+confidence = "high"
+
+# JWT Configuration Patterns
+[[rules]]
+id = "jwt-secret"
+description = "JWT secret configuration"
+regex = '''(?i)(JWT_SECRET|jwt_secret)["\s]*(?::|=>|=)\s*["\']([^"\']{16,})["\']'''
+tags = ["jwt", "secret", "token"]
+confidence = "high"
+
+[[rules]]
+id = "jwt-swagger-secret"
+description = "JWT Swagger secret configuration"
+regex = '''(?i)(JWT_SWAGGER_SECRET|jwt_swagger_secret)["\s]*(?::|=>|=)\s*["\']([^"\']{16,})["\']'''
+tags = ["jwt", "swagger", "secret"]
+confidence = "high"
+
+[[rules]]
+id = "swagger-secret"
+description = "Swagger secret configuration"
+regex = '''(?i)(SWAGGER_SECRET|swagger_secret)["\s]*(?::|=>|=)\s*["\']([^"\']{8,})["\']'''
+tags = ["swagger", "secret", "api"]
+confidence = "high"
+
+# Kubernetes ConfigMap Patterns
+[[rules]]
+id = "kubernetes-configmap"
+description = "Kubernetes ConfigMap with sensitive data"
+regex = '''(?i)kind:\s*ConfigMap[\s\S]*?data:[\s\S]*?(?:DB_PASSWORD|JWT_SECRET|API_KEY|SECRET)["\s]*(?::|=>|=)\s*["\']([^"\']+)["\']'''
+tags = ["kubernetes", "configmap", "secret"]
+confidence = "high"
+
+# Environment Variable Patterns
+[[rules]]
+id = "env-variable-secret"
+description = "Environment variable containing secret"
+regex = '''(?i)([A-Z_]+_SECRET|[A-Z_]+_PASSWORD|[A-Z_]+_KEY)["\s]*(?::|=>|=)\s*["\']([^"\']{8,})["\']'''
+tags = ["environment", "secret", "password"]
+confidence = "medium"
+
+# Database Configuration Object Patterns
+[[rules]]
+id = "database-config-object"
+description = "Database configuration object with credentials"
+regex = '''(?i)const\s+databaseConfig\s*=\s*\{[\s\S]*?(?:host|port|database|username|password)[\s\S]*?\}'''
+tags = ["database", "config", "javascript"]
+confidence = "medium"
+
+# Hardcoded Database Credentials
+[[rules]]
+id = "hardcoded-db-credentials"
+description = "Hardcoded database credentials in code"
+regex = '''(?i)(?:host|port|database|username|password)\s*:\s*(?:process\.env\.[A-Z_]+\s*\|\|\s*)?["\']([^"\']+)["\']'''
+tags = ["database", "credentials", "hardcoded"]
+confidence = "medium"
+
+# Service Configuration Patterns
+[[rules]]
+id = "service-config"
+description = "Service configuration with sensitive data"
+regex = '''(?i)(SERVICE_NAME|service_name)["\s]*(?::|=>|=)\s*["\']([^"\']+)["\']'''
+tags = ["service", "config"]
+confidence = "low"
+
+# Logging Configuration
+[[rules]]
+id = "log-level-config"
+description = "Log level configuration"
+regex = '''(?i)(LOG_LEVEL|log_level)["\s]*(?::|=>|=)\s*["\']([^"\']+)["\']'''
+tags = ["logging", "config"]
+confidence = "low"
+
+# Node Environment Configuration
+[[rules]]
+id = "node-env-config"
+description = "Node environment configuration"
+regex = '''(?i)(NODE_ENV|node_env)["\s]*(?::|=>|=)\s*["\']([^"\']+)["\']'''
+tags = ["node", "environment", "config"]
+confidence = "low"
+
+# Port Configuration
+[[rules]]
+id = "port-config"
+description = "Port configuration"
+regex = '''(?i)(PORT|port)["\s]*(?::|=>|=)\s*["\']?(\d{4,5})["\']?'''
+tags = ["port", "config"]
+confidence = "low"

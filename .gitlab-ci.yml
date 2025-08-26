@@ -6,24 +6,33 @@ variables:
   GITLEAKS_VERSION: "v8.28.0"
   SOURCE_IMAGE: "zricethezav/gitleaks:${GITLEAKS_VERSION}"
   TARGET_IMAGE: "${CI_REGISTRY}/security/gitleaks:${GITLEAKS_VERSION}"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
 
 docker-build-and-push:
   stage: docker
+  image: docker:24.0.7
+  services:
+    - name: docker:24.0.7-dind
+      alias: docker
+      command: ["--insecure-registry=192.168.11.222:5050"]
+  variables:
+    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_TLS_CERTDIR: ""   # disable TLS
   tags:
     - security-tools
   before_script:
-    - whoami
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
     # Build the custom image using the Dockerfile
     - echo "Building custom Gitleaks image with custom rules..."
-    - docker build -t ${TARGET_IMAGE} .
+    - docker build -t "${TARGET_IMAGE}" .
     - echo "Custom image built successfully"
     # Push to local registry
     - echo "Pushing custom image to local registry..."
-    - docker push ${TARGET_IMAGE}
+    - docker push "${TARGET_IMAGE}"
     # Clean up
-    - docker rmi ${TARGET_IMAGE} || true
+    - docker rmi "${TARGET_IMAGE}" || true
   only:
     - main
     - tags
@@ -31,8 +40,9 @@ docker-build-and-push:
 
 notify-success:
   stage: notify
+  image: alpine/curl:8.12.0
   tags:
-    - cyberex-frontend
+    - security-tools
   script:
     - |
       curl -X POST \

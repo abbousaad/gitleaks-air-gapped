@@ -1,11 +1,11 @@
 stages:
   - docker
-  - notify
 
 variables:
   GITLEAKS_VERSION: "v8.28.0"
   SOURCE_IMAGE: "zricethezav/gitleaks:${GITLEAKS_VERSION}"
-  TARGET_IMAGE: "${CI_REGISTRY}/security/gitleaks:${GITLEAKS_VERSION}"
+  # Pushes to this project's own registry path on the GitLab-hosted registry
+  TARGET_IMAGE: "${CI_REGISTRY_IMAGE}:${GITLEAKS_VERSION}"
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: "/certs"
 
@@ -15,7 +15,7 @@ docker-build-and-push:
   services:
     - name: docker:24.0.7-dind
       alias: docker
-      command: ["--insecure-registry=192.168.11.222:5050"]
+      command: ["--insecure-registry=192.168.36.114:5050"]
   variables:
     DOCKER_HOST: "tcp://docker:2375"
     DOCKER_TLS_CERTDIR: ""   # disable TLS
@@ -36,21 +36,4 @@ docker-build-and-push:
   only:
     - main
     - tags
-  when: on_success
-
-notify-success:
-  stage: notify
-  image: alpine/curl:8.12.0
-  tags:
-    - security-tools
-  script:
-    - |
-      curl -X POST \
-        -u "$NEXCLOUD_USERNAME:$NEXCLOUD_PASSWORD" \
-        -H "OCS-APIRequest: true" \
-        -H "Content-Type: application/json" \
-        --data-raw "{\"message\": \"🔒 New Custom Gitleaks Image Available in Local Registry!\\n\\n📋 Details:\\n• Commit: $CI_COMMIT_SHORT_SHA\\n• Branch: $CI_COMMIT_REF_NAME\\n• Pipeline: $CI_PIPELINE_ID\\n• Triggered by: $GITLAB_USER_NAME\\n\\n🐳 New Image: $TARGET_IMAGE\\n\\n✅ Custom Gitleaks image has been successfully built and pushed to the local registry.\\n\\n🔍 Ready for use in CI/CD pipelines:\\n• Version: $GITLEAKS_VERSION\\n• Features: Custom security rules and configurations\\n• Base: Docker Hub official image with enhancements\"}" \
-        "$NEXCLOUD_URL/ocs/v2.php/apps/spreed/api/v1/chat/$NEXCLOUD_CONVERSATION_TOKEN"
-  only:
-    - main
   when: on_success
